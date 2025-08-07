@@ -1,18 +1,15 @@
+// services/api.js
+
 import axios from "axios";
-import { auth } from "./firebase";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_FUNCTIONS_BASE_URL,
-  timeout: 20000,
-});
+const API_BASE_URL = import.meta.env.VITE_OPENAI_PROXY;
 
-api.interceptors.request.use(async (config) => {
-  const user = auth.currentUser;
-  if (user) {
-    const token = await user.getIdToken();
-    config.headers.Authorization = `Bearer ${token}`;
+export const callOpenAI = async (messages) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/chat`, { messages });
+    return response.data;
+  } catch (error) {
+    console.error("OpenAI Proxy Error:", error);
+    return null;
   }
-  return config;
-});
-
-export default api;
+};
