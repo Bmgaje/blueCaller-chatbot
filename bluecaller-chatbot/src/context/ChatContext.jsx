@@ -1,5 +1,7 @@
+// src/context/ChatContext.jsx
+
 import { createContext, useContext, useState } from "react";
-import api from "../services/api";
+import { callOpenAI } from "../services/api"; // named import
 
 const ChatContext = createContext({ messages: [] });
 
@@ -10,19 +12,27 @@ export function ChatProvider({ children }) {
   async function sendMessage(text) {
     if (!text.trim() || sending) return;
 
+    // Add user message to state
     const userMsg = { role: "user", content: text };
-    setMessages((m) => [...m, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setSending(true);
 
     try {
-      const { data } = await api.post("/chat", {
-        messages: [...messages, userMsg].slice(-8), // send last 8 msgs
-      });
-      setMessages((m) => [...m, data.assistantMsg]);
+      // Send the last 8 messages to the backend
+      const data = await callOpenAI([...messages, userMsg].slice(-8));
+
+      if (data?.assistantMsg) {
+        setMessages((prev) => [...prev, data.assistantMsg]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "🤖 I couldn't get a response." },
+        ]);
+      }
     } catch (err) {
-      console.error(err);
-      setMessages((m) => [
-        ...m,
+      console.error("Chat API Error:", err);
+      setMessages((prev) => [
+        ...prev,
         { role: "assistant", content: "🚨 Sorry, something went wrong." },
       ]);
     } finally {
