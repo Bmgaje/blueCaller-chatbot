@@ -1,58 +1,28 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "../context/ChatContext";
 import { Send } from "lucide-react";
-import { callOpenAI } from "../services/api";
 
 export default function ChatbotWidget() {
-  const { messages, setMessages } = useChat();
+  const { messages, sendMessage, sending } = useChat();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
   const listRef = useRef(null);
 
-  // Scroll to latest message when open or messages change
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages, open]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const userMessage = { role: "user", content: input };
-    const newMessages = [...messages, userMessage];
-
-    setMessages(newMessages);
+    sendMessage(input);
     setInput("");
-    setSending(true);
-
-    try {
-      const reply = await callOpenAI(newMessages);
-      if (reply?.choices?.[0]?.message?.content) {
-        const aiMessage = reply.choices[0].message;
-        setMessages((prev) => [...prev, aiMessage]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "Sorry, I didn't understand that." },
-        ]);
-      }
-    } catch (err) {
-      console.error("OpenAI error:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Something went wrong. Try again later.",
-        },
-      ]);
-    } finally {
-      setSending(false);
-    }
   };
 
+  // Closed state: Floating chat button
   if (!open)
     return (
       <button
@@ -64,10 +34,11 @@ export default function ChatbotWidget() {
       </button>
     );
 
+  // Open state: Chat UI
   return (
     <div className="fixed bottom-6 right-6 flex h-[550px] w-80 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-300">
       <header className="flex items-center justify-between bg-blue-600 p-3 text-white">
-        <span>Ask BlueCaller AI</span>
+        <span>Ask BlueCaller AI</span>
         <button onClick={() => setOpen(false)} aria-label="Close chat">
           ✕
         </button>
